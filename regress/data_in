@@ -1,0 +1,65 @@
+# This shell script reads in the data and sets up all the intermediate results. The last
+# line is the regression. Since this started at a hack-a-thon, it's a series of short
+# scripts; one could unify them 
+
+#
+#
+# prerequisites:
+# poverty_upper_lower_05.csv
+# bangladesh_2001to2005_v6.csv
+# geo_to_upazila.csv 
+# Bangladesh\ census\ data.csv
+# Apophenia & its dependencies.
+
+apop_text_to_db -O -d"|" poverty_upper_lower_05.csv povertyhilo b.db
+sed -e '1s/-/_/g'  -e "s/'//g" < bangladesh_2001to2005_v6.csv  | apop_text_to_db -O '-' pandl b.db
+#junk geoid.
+#apop_text_to_db -O -d"|" pop05.csv pop05 b.db
+apop_text_to_db -O -d"|" geo_to_upazila.csv geo_upa1 b.db
+
+sqlite3 b.db "create table geo_upa
+as select *, id1||id2||id3 geo6, 
+id1||cast( id2+0 as string)||case when id3<=9 then '0' else '' 
+end ||id3 geo5
+from geo_upa1"
+
+apop_text_to_db -O -d"|" Bangladesh\ census\ data.csv census b.db
+
+# The name adjustments for merging. Four different spellings,
+# two pairs of same-named areas that I rename to disambiguate.
+sqlite3 b.db "update census set thana_name='Daulatkhan' where thana_name like 'Daulat Khan'"
+sqlite3 b.db "update census set thana_name='JHALOKATI SADAR' where thana_name like 'JHALAKATI SADAR'"
+sqlite3 b.db "update census set thana_name='NAIKHONGCHHAR' where thana_name like 'NAIKHONGCHHARI'"
+sqlite3 b.db "update census set thana_name='CHITTAGONG' where thana_name like 'CHITTAGONG PORT'"
+
+sqlite3 b.db "update census set thana_name='KACHUA_B' where thana_name like 'KACHUA' and area=134.86"
+sqlite3 b.db "update census set thana_name='KACHUA_C' where thana_name like 'KACHUA' and area=246.58"
+
+sqlite3 b.db "update pandl set ADMName='KACHUA_B' where ADMName like 'KACHUA' and (areaSqKm-116)*(areaSqKm-116) <1"
+sqlite3 b.db "update pandl set ADMName='KACHUA_C' where ADMName like 'KACHUA' and (areaSqKm-237)*(areaSqKm-237) <1"
+
+sqlite3 b.db "update census set thana_name='KAWKHALI_P' where thana_name like 'KAWKHALI' and area=213.98"
+sqlite3 b.db "update census set thana_name='KAWKHALI_R' where thana_name like 'KAWKHALI' and area=20.56"
+sqlite3 b.db "update pandl set ADMName='KAWKHALI_P' where ADMName like 'KACHUA' and (areaSqKm-228)*(areaSqKm-228) <1"
+sqlite3 b.db "update pandl set ADMName='KAWKHALI_R' where ADMName like 'KACHUA' and (areaSqKm-70)*(areaSqKm-70) <1"
+
+
+sqlite3 b.db "create table ppl as 
+select pandl.* , census.*
+from 
+pandl, census
+where census.thana_name like pandl.Admname"
+sqlite3 b.db 'create index indpplt on ppl(admname)'
+
+# Generate yule, log mean, et al.
+make stats
+./stats > o
+ apop_text_to_db -O -d'|' o stats b.db
+
+#Find lines of best fit for each series of lags. β_0 is mean year-over-year Δ; β_1 is δΔ.
+make diff_regress
+./diff_regress > out.diff_regression
+
+#Finally, the denoument:
+make regress
+./regress > out.regression
