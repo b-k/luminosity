@@ -2,7 +2,7 @@
 int main (){
     apop_db_open("b.db");
     apop_data *d = apop_query_to_data(
-        "select distinct ppl.'2001_upper_poverty',ln_mu,slope,slopeslope, p_ag__labour_t, "
+        "select distinct ppl.'2001_upper_poverty',ln_mu,slope,/*slopeslope, p_ag__labour_t, */"
         "population/area/1000 dens, p_elec__con_t ,  p_urban_t "
         "from stats, ppl,lagslopes "
         "where stats.zila = ppl.admname and stats.year=2005 "

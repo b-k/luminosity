@@ -56,7 +56,7 @@ make stats
 ./stats > o
  apop_text_to_db -O -d'|' o stats b.db
 
-#Find lines of best fit for each series of lags. β_0 is mean year-over-year Δ; β_1 is δΔ.
+#Find lines of best fit for each series of lags. β_0 is for mean year-over-year Δ; β_1 is for δΔ.
 make diff_regress
 ./diff_regress > out.diff_regression
 

@@ -1,8 +1,8 @@
 #include <apop.h>
 
 apop_data *make_histo(char const *zila, int year){
-    apop_data *d = apop_data_calloc(257,1);
-    for (int i=0; i< 255; i++){
+    apop_data *d = apop_data_calloc(65,1);
+    for (int i=0; i< 64; i++){
         char *col; asprintf(&col, "year_%i_num_intensity_%i", year, i);
         double val=apop_query_to_float("select %s from ppl where "
                     "ADMName='%s'", col, zila);
@@ -18,8 +18,8 @@ typedef struct {double yule, kl, mean, ln,lnstderr, lnkl; int error;} ykl_s;
 ykl_s make_yule(char const *zila, int y){
     static gsl_matrix *indices;
     if (!indices){
-       indices = gsl_matrix_calloc(257,1);
-       for (int i=0; i< 255; i++) gsl_matrix_set(indices, i,0, i);
+       indices = gsl_matrix_calloc(65,1);
+       for (int i=0; i< 64; i++) gsl_matrix_set(indices, i,0, i);
     }
     apop_data *col = make_histo(zila, y);
     apop_data ww = (apop_data){.weights=col->vector, .matrix=indices};
@@ -50,5 +50,5 @@ int main(){
             ykl_s ykl = make_yule(*zilas->text[i], y);
             printf("%20s| %i| %g| %g| %g| %g| %g|%g\n", *zilas->text[i], y, ykl.yule, ykl.kl, ykl.mean, ykl.ln, ykl.lnstderr, ykl.lnkl);
         }
-    //apop_plot_histogram(m->data->weights, 256, .output_file="histo");
+    //apop_plot_histogram(m->data->weights, 64, .output_file="histo");
 }
